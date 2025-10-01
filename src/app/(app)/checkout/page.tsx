@@ -3,11 +3,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CartItem } from "../orders/page";
 import { toast  } from "sonner";
 import { PromotionPanel } from "./PromotionPanel";
 import { InvoicePanel } from "./InvoicePanel";
 import { PaymentActions } from "./PaymentActions";
+import { CartItem } from "@/model/cart-item.model";
 
 export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);

@@ -1,4 +1,5 @@
-export type StaffRole = "Quản lý" | "Nhân viên" | "Pha chế" | "Thu ngân";
+import { Role } from "./role.model";
+
 export type StaffStatus = "Đang hoạt động" | "Tạm nghỉ";
 
 export type Staff = {
@@ -9,7 +10,8 @@ export type Staff = {
   birthDate?: Date;
   idCardNumber?: string;
   idCardIssueDate?: Date;
-  role: StaffRole;
+  role: Role;
+  roleId: string;
   workShift?: string;
   avatarUrl?: string;
   status: StaffStatus;
@@ -25,7 +27,7 @@ export type StaffFormData = Pick<
   | "birthDate"
   | "idCardNumber"
   | "idCardIssueDate"
-  | "role"
+  | "roleId"
   | "workShift"
   | "avatarUrl"
 >;

@@ -5,13 +5,8 @@ import Cart from "./Cart";
 import Menu from "./Menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ItemReturnView from "./ItemReturnView";
+import { CartItem } from "@/model/cart-item.model";
 
-export interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  qty: number;
-}
 
 export default function OrderPage() {
   const [cart, setCart] = useState<CartItem[]>([]);

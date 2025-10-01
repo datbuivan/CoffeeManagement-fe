@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { CartItem } from "./page";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CartItem } from "@/model/cart-item.model";
 
 export default function Cart({ items, onUpdateQty, onRemoveItem,
   onClearCart, }: { items: CartItem[]; onUpdateQty: (id: number, delta: number) => void;onRemoveItem: (id: number) => void;

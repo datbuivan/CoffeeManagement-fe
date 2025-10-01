@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AddProductDialog } from "@/components/AddProductDialog";
+import { AddProductDialog } from "@/app/(app)/products/ProductFormDialog";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,19 +23,9 @@ import {
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Product } from "@/model/product.model";
 
-interface ProductSize {
-  id: number;
-  name: string;
-  price: number;
-}
 
-interface Product {
-  id: number;
-  name: string;
-  categoryName: string;
-  sizes: ProductSize[];
-}
 
 export default function ProductPage() {
   const [products, setProducts] = useState<Product[]>([

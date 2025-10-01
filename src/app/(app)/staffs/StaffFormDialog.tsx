@@ -32,14 +32,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Staff, StaffFormData } from "./staff.model";
+import { Staff, StaffFormData } from "../../../model/staff.model";
 import { Upload, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Role } from "@/model/role.model";
 
 const staffFormSchema = z.object({
   name: z.string().min(1, { message: "Tên không được để trống." }),
   email: z.string().email({ message: "Địa chỉ email không hợp lệ." }),
-  role: z.enum(["Quản lý", "Nhân viên", "Pha chế", "Thu ngân"]),
+  roleId: z.string().min(1, { message: "Chức vụ không được để trống." }), 
+  // role: z.enum(["Quản lý", "Nhân viên", "Pha chế", "Thu ngân"]),
   gender: z.enum(["Nam", "Nữ", "Khác"]),
   birthDate: z.date().optional(),
   avatarUrl: z.string().url().optional().or(z.literal('')),
@@ -52,13 +54,13 @@ interface StaffFormDialogProps {
   mode: 'add' | 'edit';
   initialData?: Staff;
   onSave: (data: StaffFormData & { id?: string }) => Promise<void>;
+  allRoles: Role[]; 
   children: React.ReactNode;
 }
 
-export function StaffFormDialog({ mode, initialData, onSave, children }: StaffFormDialogProps) {
+export function StaffFormDialog({ mode, initialData, onSave, allRoles ,children }: StaffFormDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const roles = ["Quản lý", "Nhân viên", "Pha chế", "Thu ngân"];
   const genders = ["Nam", "Nữ", "Khác"];
 
   const form = useForm({
@@ -66,7 +68,7 @@ export function StaffFormDialog({ mode, initialData, onSave, children }: StaffFo
     defaultValues: {
       name: "",
       email: "",
-      role: "Nhân viên",
+      roleId: allRoles.length > 0 ? allRoles[0].id : "",
       gender: "Nam",
       avatarUrl: "",
       idCardNumber: "",
@@ -81,6 +83,7 @@ export function StaffFormDialog({ mode, initialData, onSave, children }: StaffFo
       if (mode === 'edit' && initialData) {
         form.reset({
           ...initialData,
+          roleId: initialData.role.id,
           birthDate: initialData.birthDate ? new Date(initialData.birthDate) : undefined,
           idCardIssueDate: initialData.idCardIssueDate ? new Date(initialData.idCardIssueDate) : undefined,
         });
@@ -88,7 +91,6 @@ export function StaffFormDialog({ mode, initialData, onSave, children }: StaffFo
         form.reset({
           name: "",
           email: "",
-          role: "Nhân viên",
           gender: "Nam",
           avatarUrl: "",
           idCardNumber: "",
@@ -147,14 +149,14 @@ export function StaffFormDialog({ mode, initialData, onSave, children }: StaffFo
                   </FormItem>
                 )} />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField control={form.control} name="role" render={({ field }) => (
+                  <FormField control={form.control} name="roleId" render={({ field }) => (
                     <FormItem className="w-full">
                       <FormLabel>Chức vụ</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value} >
                         <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
                         <SelectContent>
-                          {roles.map((role) => (
-                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                          {allRoles.map((role) => (
+                            <SelectItem key={role.id} value={role.id}>{role.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
