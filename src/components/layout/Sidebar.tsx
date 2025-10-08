@@ -1,6 +1,8 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { Home, Coffee, FileText, Users, BarChart, Settings, X } from "lucide-react";
+import { Home, Coffee, FileText, Users, BarChart, Settings, X, Table, Folder, Calendar } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -11,7 +13,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-20 w-64 flex-col border-r bg-gradient-to-br from-[#F5F5DC] to-[#D2B48C] transition-transform duration-300 ease-in-out md:translate-x-0",
+        "fixed inset-y-0 left-0 z-20 w-64 flex-col border-r bg-gradient-to-br from-[#F5F5DC] to-[#D2B48C] transition-transform duration-300 ease-in-out -translate-x-full",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}
     >
@@ -20,7 +22,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             <Coffee className="h-6 w-6 sm:h-7 sm:w-7 text-[#6B4E31] align-middle" />
                 <span className="align-middle">Quán Cà Phê</span>
         </Link>
-        <button className="md:hidden" onClick={onToggle}>
+        <button onClick={onToggle}>
           <X className="h-6 w-6 text-[#6B4E31]" />
         </button>
       </div>
@@ -30,7 +32,10 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
           { href: "/", label: "Dashboard", icon: Home },
           { href: "/orders", label: "Đơn hàng", icon: Coffee },
           { href: "/products", label: "Sản phẩm", icon: FileText },
-          { href: "/staffs", label: "Nhân viên", icon: Users },
+          { href: "/categories", label: "Danh mục sản phẩm", icon: Folder },
+          { href: "/tables", label: "Bàn", icon: Table },
+          { href: "/users", label: "Nhân viên", icon: Users },
+          { href: "/schedules", label: "Lịch làm nhân viên", icon: Calendar },
           { href: "/reports", label: "Báo cáo", icon: BarChart },
           { href: "/settings", label: "Cài đặt", icon: Settings },
         ].map((item) => (
@@ -38,6 +43,7 @@ export default function Sidebar({ isOpen, onToggle }: SidebarProps) {
             key={item.href}
             href={item.href}
             className="flex items-center gap-2 rounded-lg px-4 py-2 hover:bg-[#EED6B3] transition-colors duration-200"
+            onClick={onToggle}
           >
             <item.icon className="h-5 w-5" /> {item.label}
           </Link>

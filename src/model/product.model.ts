@@ -1,8 +1,12 @@
+import { Category } from "./category.model";
 import { ProductSize } from "./product-size.model";
 
 export interface Product {
-  id: number;
+  id: string;
   name: string;
-  categoryName: string;
-  sizes: ProductSize[];
+  imageUrl: string | null;
+  isAvailable: boolean;
+  categoryId: string;
+  category?: Category[];
+  productSize?: ProductSize[];
 }

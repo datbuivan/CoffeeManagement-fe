@@ -1,4 +1,4 @@
-export interface Role {
+export interface Category {
   id: string;
   name: string;
   description?: string;

@@ -1,62 +1,52 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Order } from "./OrderList";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@radix-ui/react-checkbox";
 
-interface OrderDetailProps {
-  order: Order | null;
-  itemsToReturn: Set<string>;
-  onToggleItem: (itemId: string) => void;
-  onReturnSubmit: () => void;
-}
 
-export default function OrderDetail({ order, itemsToReturn, onToggleItem, onReturnSubmit }: OrderDetailProps) {
+export default function OrderDetail({ order, itemsToReturn, onToggleItem, onReturnSubmit }: { order: Order | null, itemsToReturn: Set<string>, onToggleItem: (itemId: string) => void, onReturnSubmit: () => void }) {
   if (!order) {
     return (
-      <div className="md:col-span-2 bg-[#FDFBF6] rounded-lg border p-6 flex items-center justify-center">
-        <p className="text-gray-500">Vui lòng chọn một order để xem chi tiết.</p>
-      </div>
+      <Card className="col-span-2 h-full flex items-center justify-center">
+        <p className="text-muted-foreground">Chọn một hóa đơn để xem chi tiết</p>
+      </Card>
     );
   }
 
   return (
-    <div className="md:col-span-2 bg-[#FDFBF6] rounded-lg border p-6 relative">
-      <h2 className="text-lg font-bold mb-6">1.1 - {order.name.replace(" - ", "/")}</h2>
-      <div className="space-y-4">
-        {order.items.map((item) => {
-          const isSelected = itemsToReturn.has(item.id);
-          return (
-            <div key={item.id} className="flex justify-between items-center">
-              <span className="text-gray-700">{item.name}</span>
-              <div className="flex items-center gap-8">
-                <span className="w-4 text-center font-semibold text-gray-800">{item.quantity}</span>
-                <CheckCircle2
-                  onClick={() => onToggleItem(item.id)}
-                  className={cn(
-                    "h-6 w-6 cursor-pointer",
-                    isSelected ? "text-green-600 fill-green-100" : "text-gray-300"
-                  )}
+    <Card className="col-span-2 h-full flex flex-col">
+      <CardHeader>
+        <CardTitle className="text-lg">Chi tiết hóa đơn: {order.name}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 overflow-y-auto">
+        <div className="space-y-4">
+          {order.items.map(item => (
+            <div key={item.id} className="flex items-center justify-between p-2 rounded-md hover:bg-gray-50">
+              <label htmlFor={item.id} className="flex items-center gap-4 cursor-pointer">
+                <Checkbox
+                  id={item.id}
+                  checked={itemsToReturn.has(item.id)}
+                  onCheckedChange={() => onToggleItem(item.id)}
                 />
-              </div>
+                <span className="font-medium">{item.name}</span>
+              </label>
+              <span className="text-muted-foreground">Số lượng: {item.quantity}</span>
             </div>
-          );
-        })}
-      </div>
-      <div className="absolute bottom-6 right-6">
-        <Button
-          variant="ghost"
-          className="flex flex-col items-center justify-center h-24 w-24 rounded-lg border-2 border-green-600 text-green-600 gap-1"
+          ))}
+        </div>
+      </CardContent>
+      <div className="p-4 border-t">
+        <Button 
+          size="lg" 
+          className="w-full bg-red-600 hover:bg-red-700" 
           onClick={onReturnSubmit}
-          disabled={itemsToReturn.size === 0} 
+          disabled={itemsToReturn.size === 0}
         >
-          <CheckCircle2 className="h-8 w-8" />
-          <span className="font-bold">
-            Trả {itemsToReturn.size > 0 ? `(${itemsToReturn.size})` : ''} món
-          </span>
+          Trả {itemsToReturn.size} món đã chọn
         </Button>
       </div>
-    </div>
+    </Card>
   );
 }

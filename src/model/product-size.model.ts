@@ -1,5 +1,5 @@
 export interface ProductSize {
-  id: number;
+  id: string;
   name: string;
   price: number;
 }
