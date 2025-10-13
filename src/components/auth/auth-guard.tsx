@@ -60,11 +60,9 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
     // Check role requirements
     if (requireAuth && isAuthenticated && requiredRoles.length > 0) {
-      const userRoles = user?.roles || [];
-      const hasRequiredRole = requiredRoles.some((role) =>
-        userRoles.includes(role)
-      );
-
+      const userRole = user?.roleName; // chỉ có roleName
+      const hasRequiredRole = requiredRoles.includes(userRole || "");
+    
       if (!hasRequiredRole) {
         router.push(redirectTo || "/unauthorized");
         return;
@@ -94,10 +92,8 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   }
 
   if (requireAuth && isAuthenticated && requiredRoles.length > 0) {
-    const userRoles = user?.roles || [];
-    const hasRequiredRole = requiredRoles.some((role) =>
-      userRoles.includes(role)
-    );
+    const userRole = user?.roleName;
+    const hasRequiredRole = requiredRoles.includes(userRole || "");
 
     if (!hasRequiredRole) {
       return <>{fallback}</>;
@@ -113,9 +109,9 @@ export const useHasRole = (roles: string | string[]): boolean => {
   if (!isAuthenticated || !user) return false;
 
   const requiredRoles = Array.isArray(roles) ? roles : [roles];
-  const userRoles = user.roles || [];
+  const userRole = user.roleName; // chỉ có 1 role
 
-  return requiredRoles.some((role) => userRoles.includes(role));
+  return requiredRoles.includes(userRole);
 };
 
 
@@ -124,9 +120,10 @@ export const useHasAllRoles = (roles: string[]): boolean => {
 
   if (!isAuthenticated || !user) return false;
 
-  const userRoles = user.roles || [];
+  const userRole = user.roleName; // chỉ có 1 role
 
-  return roles.every((role) => userRoles.includes(role));
+  // Chỉ true khi role duy nhất của user nằm trong roles
+  return roles.length === 1 && roles[0] === userRole;
 };
 
 

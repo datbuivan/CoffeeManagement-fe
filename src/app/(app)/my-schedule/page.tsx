@@ -123,7 +123,7 @@ export default function MySchedulePage() {
     if (currentStaffId) {
       loadMySchedules();
     }
-  }, [selectedMonth, selectedYear, currentStaffId]);
+  }, [,selectedMonth, selectedYear, currentStaffId]);
 
   const loadMySchedules = async () => {
     if (!currentStaffId) return;
