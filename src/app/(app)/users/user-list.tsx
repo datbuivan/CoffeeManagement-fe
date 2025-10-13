@@ -1,7 +1,7 @@
 // app/users/user-list.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, easeOut } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { User } from "@/model/user.model";
 import UserForm from "./user-form";
+import { roleService } from "@/services/role.service";
 
 interface UserListProps {
   users: User[];
@@ -28,16 +29,26 @@ export default function UserList({ users, onUpdate, onDelete }: UserListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
 
   const perPage = 5;
+
+  useEffect(() => {
+    loadRoles();
+  }, []);
+  const loadRoles = async () => {
+    const res = await roleService.getAll();
+    if (res.statusCode === 200 && res.data) setRoles(res.data.map((r) => r.name));
+  };
+
 
   // Lọc users theo search với useMemo để optimize
   const filteredUsers = useMemo(() => 
     users.filter((user) =>
       user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.employeeCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.roles.some(role => role.toLowerCase().includes(searchQuery.toLowerCase()))
+      user.employeeCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.userName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.roleName?.toLowerCase().includes(searchQuery.toLowerCase())
     ),
     [users, searchQuery]
   );
@@ -121,10 +132,7 @@ export default function UserList({ users, onUpdate, onDelete }: UserListProps) {
     visible: { opacity: 1, scale: 1 },
   };
 
-  const getRolesDisplay = (roles: string[]) => roles.join(", ");
-
-  // Mock available roles
-  const availableRoles = ["Admin", "Manager", "Staff"];
+  const getRolesDisplay = (role?: string) => role || "";
 
   return (
     <motion.div
@@ -212,7 +220,7 @@ export default function UserList({ users, onUpdate, onDelete }: UserListProps) {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-[#6B4E31]">
                       <span className="inline-flex px-2 py-1 rounded-full text-xs font-medium bg-[#D2B48C]/20 text-[#6B4E31]">
-                        {getRolesDisplay(user.roles)}
+                        {getRolesDisplay(user.roleName)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
@@ -319,7 +327,7 @@ export default function UserList({ users, onUpdate, onDelete }: UserListProps) {
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
         user={editingUser}
-        availableRoles={availableRoles}
+        roles={roles}
         onSuccess={handleSaveSuccess}
       />
     </motion.div>

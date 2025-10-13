@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sheet";
 import { Table } from "@/model/table.model";
 import { tableService } from "@/services/table.service";
+import { toast } from "sonner";
 
 interface TableFormProps {
   isOpen: boolean;
@@ -80,11 +81,10 @@ export default function TableForm({
         await tableService.create({ name: formData.name });
         }
         onSuccess();
-
       onSuccess();
     } catch (error) {
       console.error("Error saving table:", error);
-      alert("Có lỗi xảy ra khi lưu bàn!");
+      toast.error("Có lỗi xảy ra khi lưu bàn!");
     } finally {
       setIsLoading(false);
     }

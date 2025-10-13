@@ -5,7 +5,7 @@ import { Table } from "@/model/table.model";
 
 class TableService extends BaseService {
   constructor() {
-    super("https://localhost:7200/api");
+    super();
   }
 
   async getAll(): Promise<ApiResponse<Table[]>> {
@@ -26,6 +26,10 @@ class TableService extends BaseService {
 
   async deleteById(id: string): Promise<ApiResponse<void>> {
     return this.delete<void>(`/Table/${id}`);
+  }
+
+  async updateStatus(id: string, payload: { status: Table["status"] }) {
+    return this.patch<ApiResponse<string>>(`/Table/${id}/status`, payload);
   }
 }
 

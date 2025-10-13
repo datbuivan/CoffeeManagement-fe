@@ -23,7 +23,7 @@ export default function Cart({
   const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full ">
       <div className="p-4 border-b flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-xl font-bold">Giỏ hàng</h2>
@@ -46,7 +46,7 @@ export default function Cart({
         )}
       </div>
       
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-thin">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-thin ">
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <svg 
@@ -69,7 +69,7 @@ export default function Cart({
           items.map((item) => (
             <div 
               key={item.id} 
-              className="border rounded-lg p-3 hover:shadow-md transition-shadow bg-white"
+              className="border p-3 hover:shadow-md transition-shadow bg-white rounded-lg"
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
@@ -77,7 +77,7 @@ export default function Cart({
                     {item.product.name}
                   </h3>
                   <p className="text-sm text-gray-500 mt-1">
-                    Size: {item.size.name} • {item.size.price.toLocaleString('vi-VN')}đ
+                    Size: {item.size.size} • {item.size.price.toLocaleString('vi-VN')}đ
                   </p>
                 </div>
                 <Button
@@ -121,7 +121,7 @@ export default function Cart({
         )}
       </div>
 
-      <div className="border-t p-4 space-y-3 shrink-0 ">
+      <div className="border-t px-4 space-y-3 shrink-0 ">
         <div className="flex justify-between items-center">
           <span className="text-gray-600">Tạm tính:</span>
           <span className="font-semibold text-lg">

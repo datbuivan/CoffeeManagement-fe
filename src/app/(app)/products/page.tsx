@@ -8,6 +8,8 @@ import { Product } from "@/model/product.model";
 import { Category } from "@/model/category.model";
 import { productService } from "@/services/product.service";
 import { categoryService } from "@/services/category.service";
+import { toast } from "sonner";
+import { productSizeService } from "@/services/product-size.service";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,18 +28,29 @@ export default function ProductsPage() {
         productService.getAll(),
         categoryService.getAll(),
       ]);
-
-      if (productRes.statusCode === 200 && productRes.data) {
-        setProducts(productRes.data);
-      } else {
-        console.error("Lỗi khi tải sản phẩm:", productRes.message);
+      if (productRes.statusCode !== 200 || !productRes.data) {
+        toast.error("Không thể tải sản phẩm");
+        return;
       }
+      const productsData: Product[] = productRes.data;
+      const categoriesData: Category[] = categoryRes.statusCode === 200 ? categoryRes.data : [];
+      
+      const categoryMap = new Map(categoriesData.map(c => [c.id, c]));
 
-      if (categoryRes.statusCode === 200 && categoryRes.data) {
-        setCategories(categoryRes.data);
-      } else {
-        console.error("Lỗi khi tải danh mục:", categoryRes.message);
-      }
+      const productsWithDetails = await Promise.all(
+        productsData.map(async (product) => {
+          const sizesRes = await productSizeService.getByProductId(product.id);
+          
+          return {
+            ...product,
+            productSize: sizesRes.statusCode === 200 ? sizesRes.data : [],
+            category: categoryMap.get(product.categoryId) // Lấy category object trực tiếp thay vì filter
+          };
+        })
+      );
+      setProducts(productsWithDetails);
+      setCategories(categoriesData);
+
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {
@@ -51,12 +64,13 @@ export default function ProductsPage() {
       const res = await productService.deleteById(id);
       if (res.statusCode === 200) {
         setProducts((prev) => prev.filter((p) => p.id !== id));
+        toast.success("Xoá sản phẩm thành công");
       } else {
-        alert(res.message ?? "Không thể xóa sản phẩm");
+        toast.error(res.message ?? "Không thể xóa sản phẩm");
       }
     } catch (error) {
       console.error("Error deleting product:", error);
-      alert("Có lỗi xảy ra khi xóa sản phẩm!");
+      toast.error("Có lỗi xảy ra khi xóa sản phẩm!");
     }
   };
 
@@ -77,18 +91,14 @@ export default function ProductsPage() {
       className="pt-8 px-4 sm:px-6 lg:px-8"
     >
       <div className="max-w-7xl mx-auto">
-        {loading ? (
-          <div className="text-center text-gray-500">
-            Đang tải danh sách sản phẩm...
-          </div>
-        ) : (
+        
           <ProductList
             products={products}
             categories={categories}
             onUpdate={loadData}
             onDelete={handleDelete}
           />
-        )}
+
       </div>
     </motion.div>
   );

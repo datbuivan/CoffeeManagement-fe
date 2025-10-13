@@ -13,9 +13,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Archive } from "lucide-react";
 import TableForm from "./table-form";
 import { Table } from "@/model/table.model";
+import TableStatusForm from "./table-status-form";
 
 interface TableListProps {
   tables: Table[];
@@ -28,6 +29,7 @@ export default function TableList({ tables, onUpdate, onDelete }: TableListProps
   const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [editingTable, setEditingTable] = useState<Table | null>(null);
+  const [isStatusSheetOpen, setIsStatusSheetOpen] = useState(false);
 
   const perPage = 5;
 
@@ -246,6 +248,17 @@ export default function TableList({ tables, onUpdate, onDelete }: TableListProps
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </motion.div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditingTable(table);
+                            setIsStatusSheetOpen(true);
+                          }}
+                          className="text-blue-600 hover:bg-blue-50 hover:text-blue-600"
+                        >
+                           <Archive className="mr-1 h-4 w-4" />
+                        </Button>
                       </div>
                     </td>
                   </motion.tr>
@@ -329,6 +342,13 @@ export default function TableList({ tables, onUpdate, onDelete }: TableListProps
         onClose={() => setIsSheetOpen(false)}
         table={editingTable}
         onSuccess={handleSaveSuccess}
+      />
+
+      <TableStatusForm
+        isOpen={isStatusSheetOpen}
+        onClose={() => setIsStatusSheetOpen(false)}
+        table={editingTable}
+        onSuccess={onUpdate}
       />
     </motion.div>
   );

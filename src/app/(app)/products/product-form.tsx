@@ -41,6 +41,8 @@ export default function ProductForm({
     categoryId: "",
     isAvailable: true,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,12 +55,45 @@ export default function ProductForm({
           categoryId: product.categoryId,
           isAvailable: product.isAvailable ?? true,
         });
+        setImagePreview(product.imageUrl || null);
+        setImageFile(null);
       } else {
         setFormData({ name: "", categoryId: "", isAvailable: true });
+        setImagePreview(null);
+        setImageFile(null);
       }
       setErrors({});
     }
   }, [isOpen, product]);
+
+  // Xử lý chọn ảnh
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Định dạng ảnh không hợp lệ. Chỉ chấp nhận JPG, JPEG, PNG, GIF.");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error("Kích thước ảnh không được vượt quá 5MB.");
+        return;
+      }
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    const fileInput = document.getElementById('image') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
 
   // Validate dữ liệu
   const validate = (): boolean => {
@@ -83,19 +118,38 @@ export default function ProductForm({
   // Xử lý lưu sản phẩm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Vui lòng kiểm tra lại thông tin!");
+      return;
+    }
 
-    setIsLoading(true);
     try {
-      if (product) {
-        await productService.update(product.id, formData);
-        toast.success("Cập nhật sản phẩm thành công!");
+      setIsLoading(true);
+      const submitData = { ...formData };
+      if (imageFile) {
+        const formDataToSend = new FormData();
+        formDataToSend.append('name', submitData.name);
+        formDataToSend.append('categoryId', submitData.categoryId);
+        formDataToSend.append('isAvailable', submitData.isAvailable.toString());
+        formDataToSend.append('image', imageFile);
+        console.log("form", formDataToSend);
+        if (product) {
+          await productService.updateWithfile(product.id, formDataToSend);
+          toast.success("Cập nhật sản phẩm thành công!");
+        } else {
+          await productService.createWithFile(formDataToSend);
+          toast.success("Thêm sản phẩm thành công!");
+        }
       } else {
-        await productService.create(formData);
-        toast.success("Thêm sản phẩm thành công!");
+        if (product) {
+          await productService.update(product.id, submitData);
+          toast.success("Cập nhật sản phẩm thành công!");
+        } else {
+          await productService.create(submitData);
+          toast.success("Thêm sản phẩm thành công!");
+        }
       }
       onSuccess();
-      onClose();
     } catch (error) {
       console.error("Error saving product:", error);
       toast.error("Có lỗi xảy ra khi lưu sản phẩm!");
@@ -167,7 +221,7 @@ export default function ProductForm({
               >
                 <SelectTrigger
                   id="categoryId"
-                  className={`border-[#D2B48C] focus:border-[#6B4E31] ${
+                  className={`border-[#D2B48C] focus:border-[#6B4E31] w-full ${
                     errors.categoryId ? "border-red-500" : ""
                   }`}
                 >
@@ -184,6 +238,54 @@ export default function ProductForm({
               {errors.categoryId && (
                 <p className="text-sm text-red-500">{errors.categoryId}</p>
               )}
+            </div>
+
+            {/* Upload ảnh */}
+            <div className="space-y-2">
+              <Label className="text-[#6B4E31] font-medium">Ảnh sản phẩm</Label>
+              <div className="relative">
+                <input
+                  type="file"
+                  id="image"
+                  accept="image/jpeg,image/jpg,image/png,image/gif"
+                  hidden
+                  onChange={handleImageChange}
+                />
+                <div className="w-full h-48 border-2 border-dashed border-[#D2B48C] rounded-lg flex items-center justify-center bg-gray-50 relative overflow-hidden">
+                  {imagePreview ? (
+                    <>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={clearImage}
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white"
+                      >
+                        Xóa
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-gray-500 mb-2">Chưa có ảnh</p>
+                      <Button
+                        type="button"
+                        asChild
+                        className="bg-[#D2B48C] hover:bg-[#EED6B3] text-[#6B4E31]"
+                      >
+                        <label htmlFor="image">Chọn ảnh</label>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-[#6B4E31]/60 mt-1">
+                  Định dạng: JPG, JPEG, PNG, GIF (Tối đa 5MB)
+                </p>
+              </div>
             </div>
 
             {/* Trạng thái bán */}

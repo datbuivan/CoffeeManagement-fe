@@ -7,6 +7,6 @@ export interface Product {
   imageUrl: string | null;
   isAvailable: boolean;
   categoryId: string;
-  category?: Category[];
+  category?: Category;
   productSize?: ProductSize[];
 }

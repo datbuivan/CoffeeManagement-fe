@@ -21,7 +21,6 @@ export default function TablesPage() {
     try {
       setLoading(true);
       const response = await tableService.getAll();
-      console.log(response);
       if (response.statusCode === 200 && response.data) {
         setTables(response.data);
       } else {

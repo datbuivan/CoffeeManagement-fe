@@ -5,7 +5,7 @@ import { Category } from "@/model/category.model";
 
 class CategoryService extends BaseService {
   constructor() {
-    super("https://localhost:7200/api");
+    super(process.env.NEXT_PUBLIC_API_URL);
   }
 
   async getAll(): Promise<ApiResponse<Category[]>> {

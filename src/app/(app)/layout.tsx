@@ -5,6 +5,7 @@ import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import ClientLayout from "@/components/layout/client-layout";
 import { Toaster as SonnerToaster } from "sonner";
+import { AuthProvider } from "@/context/authContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -17,11 +18,14 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  
   return (
     <html lang="vi">
       <body className={cn("min-h-screen bg-[#F5F0E8] antialiased", inter.className)}>
-        <ClientLayout>{children}</ClientLayout>
-        <SonnerToaster richColors position="top-right" /> 
+        <AuthProvider>
+          <ClientLayout>{children}</ClientLayout>
+          <SonnerToaster richColors position="top-right" /> 
+        </AuthProvider>
       </body>
     </html>
   );

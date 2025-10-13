@@ -10,7 +10,7 @@ export default function Menu({ selectedCategoryId, onAddToCart, products  }: { s
     : products;
 
   return (
-    <div className="h-full overflow-y-auto space-y-3  p-1 bg-gradient-to-br from-[#F5F5DC] to-[#D2B48C] rounded-lg">
+    <div className="h-full overflow-y-auto space-y-3  p-1 bg-gradient-to-br from-[#F5F5DC] to-[#D2B48C] rounded-lg scroll-thin">
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredItems.length > 0 ? (
           filteredItems.map((item) => (

@@ -8,13 +8,19 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { User } from "lucide-react";
 import { CartItem } from "@/model/cart-item.model";
 import { Table } from "@/model/table.model";
+import { toast } from "sonner";
+import { CreateOrder } from "@/model/create-order.model";
+import { orderService } from "@/services/order.service";
+import { VnPay } from "@/model/vnpay.model";
+import { useRouter } from "next/navigation";
+
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
   selectedTable: Table | null;
-  onConfirmPayment: (paymentMethod: string, customerPaid: number) => void;
+  onConfirmPayment: () => void;
 }
 
 export default function PaymentModal({
@@ -24,84 +30,112 @@ export default function PaymentModal({
   selectedTable,
   onConfirmPayment,
 }: PaymentModalProps) {
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState<"Cash" | "VnPay">("Cash");
   const [customerPaid, setCustomerPaid] = useState(0);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false)
 
   const total = cart.reduce((sum, item) => sum + item.size.price * item.qty, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.qty, 0);
   const quickAmounts = [10000, 20000, 50000, 100000, 200000, 500000];
   const change = customerPaid - total;
+  const router = useRouter();
+
 
   useEffect(() => {
     if (isOpen) {
       setCustomerPaid(0);
-      setPaymentMethod("cash");
+      setPaymentMethod("Cash");
       setPaymentUrl(null);
       setIsProcessing(false);
+      setHasInteracted(false);
     }
   }, [isOpen]);
 
-  const handlePayment = async () => {
-    if (paymentMethod === "cash") {
+  // Tự động gọi API khi chuyển sang VnPay
+  useEffect(() => {
+    if (paymentMethod === "VnPay" && !paymentUrl && !isProcessing && isOpen) {
+      handlePayment("VnPay");
+    }
+  }, [paymentMethod]);
+
+  const handlePayment = async (method: "Cash" | "VnPay") => {
+    const userInfoString = localStorage.getItem("user-info");
+    const userInfo = userInfoString ? JSON.parse(userInfoString) : null;
+    const userId = userInfo?.id || "d5db0dd7-7534-4c08-9d61-80be8f67454b";
+
+    if (method === "Cash") {
       if (customerPaid < total) {
-        alert("Số tiền khách trả chưa đủ!");
+        if (hasInteracted) {
+          toast.error("Số tiền khách trả chưa đủ!");
+        }
         return;
       }
-      onConfirmPayment("cash", customerPaid);
-      return;
     }
 
-    // --- Thanh toán VNPAY (fake QR khi chưa có API) ---
+    const payload: CreateOrder = {
+      userId: userId,
+      tableId: selectedTable?.id || null,
+      paymentMethod: method,
+      discountAmount: 0,
+      items: cart.map(item => ({
+        productSizeId: item.size.id,
+        quantity: item.qty,
+      })),
+    };
+
     try {
-      // const res = await fetch("/api/order", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({
-      //     tableId: selectedTable?.id || null,
-      //     paymentMethod: "vnpay",
-      //     items: cart.map((item) => ({
-      //       productId: item.product.id,
-      //       sizeId: item.size.id,
-      //       quantity: item.qty,
-      //     })),
-      //   }),
-      // });
-
-      // const data = await res.json();
-      // if (data?.data?.paymentUrl) {
-      //   setPaymentUrl(data.data.paymentUrl);
-      // } else {
-      //   alert("Không lấy được liên kết thanh toán!");
-      // }
       setIsProcessing(true);
-
-      // 🔹 Giả lập thời gian chờ gọi API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 🔹 Fake link thanh toán sandbox VNPAY (demo)
-      const fakePaymentUrl =
-        "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=2900000&vnp_Command=pay&vnp_CreateDate=20251006162603&vnp_CurrCode=VND&vnp_IpAddr=127.0.0.1&vnp_Locale=vn&vnp_OrderInfo=Thanh+toan+don+hang+50cc1613-ced7-4f9e-b533-08de04ba5e6b&vnp_OrderType=other&vnp_ReturnUrl=https%3A%2F%2Flocalhost%3A7200%2Fapi%2FOrder%2Fvnpay-return&vnp_TmnCode=3LPCLU5B&vnp_TxnRef=50cc1613-ced7-4f9e-b533-08de04ba5e6b&vnp_Version=2.1.0&vnp_SecureHash=9ad7888091e165e4c9b1f8a7d3dce4c7cee375ba95688b587abea8cc13e28429de0483cdec20a94b1a5e04405855cdf2442d6e4026d59048659887db74815ca0";
-
-      // Hoặc nếu muốn hiển thị QR code tĩnh:
-      // const fakePaymentUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=ThanhToanFake_${Date.now()}`;
-
-      setPaymentUrl(fakePaymentUrl);
-    } catch (err) {
-      console.error(err);
-      alert("Lỗi khi tạo thanh toán (fake)!");
+      const res = await orderService.createAndPayOrder(payload);
+      if (res.statusCode !== 200) {
+        toast.error(res.message || "Tạo đơn hàng thất bại!");
+        return;
+      }
+      if (method === "Cash") {
+        const change = customerPaid - total;
+        toast.success(
+          `Thanh toán thành công!${change > 0 ? ` Tiền thừa: ${change.toLocaleString("vi-VN")}đ` : ""}`
+        );
+        localStorage.removeItem("cart");
+        onConfirmPayment();
+        onClose();
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      } else if (method === "VnPay") {
+        const vnPayData = res.data as VnPay;
+        const vnPayUrl = vnPayData?.paymentUrl;
+        
+        if (vnPayUrl && typeof vnPayUrl === 'string' && vnPayUrl.trim() !== '') {
+          setPaymentUrl(vnPayUrl);
+          toast.success("Quét mã QR để thanh toán");
+        } else {
+          toast.error("Không nhận được link thanh toán VnPay!");
+        }
+      }
+      
+    } catch (error) {
+      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : "Lỗi khi tạo đơn hàng!";
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
- };
+  };
 
-  useEffect(() => {
-    if (isOpen && paymentMethod === "transfer" && !paymentUrl && !isProcessing) {
-      handlePayment(); // tự gọi hàm tạo QR
+  const handlePaymentMethodChange = (value: string) => {
+    if (value === "Cash") {
+      setPaymentMethod("Cash");
+      setPaymentUrl(null);
+      setHasInteracted(false);
+    } else if (value === "VnPay") {
+      setPaymentMethod("VnPay");
+      setPaymentUrl(null);
+      setHasInteracted(false);
+      // useEffect sẽ tự động gọi API
     }
-  }, [isOpen, paymentMethod]);
-
+  };
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
@@ -116,11 +150,8 @@ export default function PaymentModal({
               <div className="flex items-center justify-between">
                 <div>
                   <SheetTitle className="text-xl font-bold">
-                    {selectedTable ? `Thanh toán #${selectedTable.id}` : "Thanh toán"}
+                    {selectedTable ? `Thanh toán #${selectedTable.name}` : "Thanh toán"}
                   </SheetTitle>
-                  <div className="text-sm text-gray-500 mt-1">
-                    {selectedTable ? selectedTable.name : "Mang về"}
-                  </div>
                 </div>
                 <div className="text-right text-sm text-gray-500">
                   {new Date().toLocaleString("vi-VN")}
@@ -183,20 +214,20 @@ export default function PaymentModal({
             {/* Payment method */}
             <RadioGroup
               value={paymentMethod}
-              onValueChange={setPaymentMethod}
+              onValueChange={handlePaymentMethodChange}
               className="flex gap-6 mb-6"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="cash" id="cash" />
-                <Label htmlFor="cash">Tiền mặt</Label>
+                <RadioGroupItem value="Cash" id="Cash" />
+                <Label htmlFor="Cash">Tiền mặt</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="transfer" id="transfer" />
-                <Label htmlFor="transfer">Chuyển khoản (VNPAY)</Label>
+                <RadioGroupItem value="VnPay" id="VnPay" />
+                <Label htmlFor="VnPay">Chuyển khoản (VNPAY)</Label>
               </div>
             </RadioGroup>
 
-            {paymentMethod === "cash" && (
+            {paymentMethod === "Cash" && (
               <>
                 <div className="flex justify-between py-2 items-center">
                   <span className="text-gray-600">Khách thanh toán</span>
@@ -216,17 +247,25 @@ export default function PaymentModal({
                     <Button
                       key={amount}
                       variant="outline"
-                      onClick={() => setCustomerPaid(amount)}
+                      onClick={() => {setCustomerPaid(amount); setHasInteracted(true);}}
                       className="h-12 text-sm font-semibold hover:bg-blue-50"
                     >
                       {amount.toLocaleString("vi-VN")}
                     </Button>
                   ))}
                 </div>
+                {customerPaid > 0 && (
+                  <div className="flex justify-between py-3 mt-4 border-t">
+                    <span className="text-gray-600">Tiền thừa trả khách</span>
+                    <span className={`font-bold text-lg ${change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {change.toLocaleString("vi-VN")} đ
+                    </span>
+                  </div>
+                )}
               </>
             )}
 
-            {paymentMethod === "transfer" && (
+            {paymentMethod === "VnPay" && (
               <div className="text-center mt-6">
                 {paymentUrl ? (
                   <>
@@ -254,15 +293,13 @@ export default function PaymentModal({
               </div>
             )}
 
-            <div className="border-t pt-6 mt-6">
+            <div className="border-t mt-auto pt-6">
               <Button
                 className="w-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300"
-                onClick={() => {
-                  if (paymentMethod === "cash") handlePayment();
-                }}
-                disabled={paymentMethod === "cash" && customerPaid < total}
+                onClick={() => handlePayment(paymentMethod)}
+                disabled={isProcessing || (paymentMethod === "Cash" && customerPaid < total)}
               >
-                {paymentMethod === "cash" ? "Xác nhận thanh toán" : "Đang chờ VNPAY..."}
+                {paymentMethod === "Cash" ? "Xác nhận thanh toán" : "Đang chờ VNPAY..."}
               </Button>
             </div>
           </div>

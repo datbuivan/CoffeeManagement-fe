@@ -13,7 +13,6 @@ dayjs.extend(isoWeek);
 import { StaffShift } from "@/model/staff-shift.model";
 import { Shift } from "@/model/shift.model";
 import ScheduleList from "./schedule-list";
-import { User } from "@/model/user.model";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import {
@@ -23,36 +22,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { scheduleService } from "@/services/schedule.service";
+import { toast } from "sonner";
+import { shiftService } from "@/services/shift.service";
 
-// --- MOCK DATA ---
-const initialShifts: Shift[] = [
-  { id: "shift-01", name: "Ca Sáng", startTime: "08:00", endTime: "12:00", isActive: true },
-  { id: "shift-02", name: "Ca Chiều", startTime: "14:00", endTime: "18:00", isActive: true },
-  { id: "shift-03", name: "Ca Tối", startTime: "18:00", endTime: "22:00", isActive: true },
-];
 
-const mockUsers: User[] = [
-  { id: "user-01", userName: "admin", fullName: "Quản Trị Viên", employeeCode: "EMP001", email: "admin@coffee.com", phoneNumber: "0123456789", roles: ["Admin"] },
-  { id: "user-02", userName: "staff1", fullName: "Nhân Viên 1", employeeCode: "EMP002", email: "staff1@coffee.com", phoneNumber: "0987654321", roles: ["Staff"] },
-  { id: "user-03", userName: "manager", fullName: "Quản Lý", employeeCode: "EMP003", phoneNumber: "0111222333", roles: ["Manager"] },
-  { id: "user-04", userName: "staff2", fullName: "Nhân Viên 2", employeeCode: "EMP004", roles: ["Staff"] },
-];
-
-const initialStaffShifts: StaffShift[] = [
-  { id: "ss-01", staffId: "user-01", shiftId: "shift-01", workDate: "2025-10-07", notes: "", staff: mockUsers[0] },
-  { id: "ss-02", staffId: "user-02", shiftId: "shift-02", workDate: "2025-10-07", notes: "Phụ trách quầy", staff: mockUsers[1] },
-  { id: "ss-03", staffId: "user-03", shiftId: "shift-01", workDate: "2025-10-08", notes: "", staff: mockUsers[2] },
-  { id: "ss-04", staffId: "user-04", shiftId: "shift-03", workDate: "2025-10-08", notes: "", staff: mockUsers[3] },
-  { id: "ss-05", staffId: "user-02", shiftId: "shift-01", workDate: "2025-10-10", notes: "", staff: mockUsers[1] },
-  { id: "ss-06", staffId: "user-01", shiftId: "shift-02", workDate: "2025-10-12", notes: "", staff: mockUsers[0] },
-  { id: "ss-07", staffId: "user-03", shiftId: "shift-02", workDate: "2025-10-09", notes: "Kiểm tra kho", staff: mockUsers[2] },
-];
 
 const getWeeksInMonth = (year: number, month: number) => {
   const firstDayUTC = dayjs.utc(new Date(Date.UTC(year, month, 1)));
   const lastDayUTC = dayjs.utc(new Date(Date.UTC(year, month + 1, 0)));
 
-  // Tuần đầu tiên bắt đầu từ thứ 2 trước ngày 1
   let current = firstDayUTC.startOf("isoWeek");
   const end = lastDayUTC.endOf("isoWeek");
 
@@ -62,7 +41,6 @@ const getWeeksInMonth = (year: number, month: number) => {
     const weekStart = current;
     const weekEnd = current.endOf("isoWeek");
 
-    // Lấy tất cả các tuần có giao với tháng hiện tại
     if (
       weekEnd.isAfter(firstDayUTC) &&
       weekStart.isBefore(lastDayUTC.endOf("day"))
@@ -74,15 +52,12 @@ const getWeeksInMonth = (year: number, month: number) => {
       });
     }
 
-    // ✅ Fix: clone trước khi cộng, tránh mutation gây lệch vòng lặp
     current = weekStart.add(1, "week").startOf("isoWeek");
   }
 
   return weeks;
 };
 
-// Test thử tháng 10/2025
-console.log(getWeeksInMonth(2025, 9));
 
 
 
@@ -98,46 +73,103 @@ const findCurrentWeekIndex = (weeks: ReturnType<typeof getWeeksInMonth>, today: 
 
 export default function SchedulesPage() {
   const today = useMemo(() => dayjs.utc(), []);
-
   const initialWeeks = getWeeksInMonth(today.year(), today.month());
   const initialIndex = findCurrentWeekIndex(initialWeeks, today.toDate());
   const initialWeekStart = initialWeeks[initialIndex]?.start || today.toDate();
 
-  const [staffShifts, setStaffShifts] = useState<StaffShift[]>(initialStaffShifts);
-  const [shifts, setShifts] = useState<Shift[]>(initialShifts);
-
+  const [staffShifts, setStaffShifts] = useState<StaffShift[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [selectedYear, setSelectedYear] = useState(today.year());
   const [selectedMonth, setSelectedMonth] = useState(today.month());
-
   const [weeksInMonth, setWeeksInMonth] = useState(initialWeeks);
   const [currentWeekIndex, setCurrentWeekIndex] = useState(initialIndex);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(initialWeekStart);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   const years = Array.from({ length: 11 }, (_, i) => 2020 + i);
   const months = Array.from({ length: 12 }, (_, i) => ({ value: i, label: `Tháng ${i + 1}` }));
 
   useEffect(() => {
-    loadSchedules();
-  }, [currentWeekStart]);
+    const newWeeks = getWeeksInMonth(selectedYear, selectedMonth);
+    setWeeksInMonth(newWeeks);
+
+    const nowInMonth = dayjs.utc().year(selectedYear).month(selectedMonth);
+    const isCurrentMonth = nowInMonth.isSame(dayjs.utc(), 'month');
+
+    if (isCurrentMonth) {
+      const idx = findCurrentWeekIndex(newWeeks, dayjs.utc().toDate());
+      setCurrentWeekIndex(idx);
+      setCurrentWeekStart(newWeeks[idx]?.start || newWeeks[0].start);
+    } else {
+      setCurrentWeekIndex(0);
+      setCurrentWeekStart(newWeeks[0].start);
+    }
+  }, [selectedYear, selectedMonth]);
+    
+   useEffect(() => {
+    loadShifts();
+  }, []);
 
   useEffect(() => {
-    const weeks = getWeeksInMonth(selectedYear, selectedMonth);
-    setWeeksInMonth(weeks);
-    setCurrentWeekIndex(0);
-    setCurrentWeekStart(weeks[0]?.start || new Date(Date.UTC(selectedYear, selectedMonth, 1)));
-  }, [selectedYear, selectedMonth]);
+    loadSchedules();
+  }, [selectedMonth, selectedYear]);
+
+  const loadShifts = async () => {
+    try {
+      const res = await shiftService.getAll(); 
+      if (res.statusCode === 200 && res.data) {
+        setShifts(res.data.filter((s: Shift) => s.isActive !== false));
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách ca làm việc:", err);
+      toast.error("Không thể tải danh sách ca làm việc");
+    }
+  };
+
 
   const loadSchedules = async () => {
-    // TODO: call API using UTC-formatted weekStart
-    // example: weekStartStr = dayjs.utc(currentWeekStart).format('YYYY-MM-DD')
-    setShifts(initialShifts);
-    setStaffShifts(initialStaffShifts);
+    setIsLoading(true);
+    try {
+      const res = await scheduleService.getScheduleByMonth(selectedYear, selectedMonth + 1);
+      if (res.statusCode === 200 && res.data) {
+        const allShifts = res.data.flatMap((d) =>
+          d.assignments.map((a) => ({
+            id: a.id,
+            staffId: a.staffId,
+            shiftId: a.shiftId,
+            workDate: a.workDate,
+            staff: { id: a.staff?.id ?? "", fullName: a.staff?.fullName ?? "", userName: a.staff?.userName ?? "" },
+            shift: {
+              id: a.shift?.id  ?? "",
+              name: a.shift?.name ?? "",
+              startTime: a.shift?.startTime ?? "",
+              endTime: a.shift?.endTime ?? "",
+              isActive: a.shift?.isActive ?? true,
+            },
+            notes: a.notes ?? "",
+          }))
+        );
+        setStaffShifts(allShifts);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải lịch làm việc:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    setStaffShifts((prev) => prev.filter((ss) => ss.id !== id));
+    try {
+      const res = await scheduleService.removeAssignment(id);
+      if (res.statusCode === 200) {
+        setStaffShifts((prev) => prev.filter((ss) => ss.id !== id));
+      }
+    } catch (err) {
+      toast.error("Xoá thất bại");
+      console.error("Xóa thất bại:", err);
+    }
   };
-
   const handlePreviousWeek = () => {
     if (currentWeekIndex > 0) {
       const newIndex = currentWeekIndex - 1;
@@ -148,9 +180,9 @@ export default function SchedulesPage() {
 
   const handleNextWeek = () => {
     if (currentWeekIndex < weeksInMonth.length - 1) {
-      const newIndex = currentWeekIndex + 1;
-      setCurrentWeekIndex(newIndex);
-      setCurrentWeekStart(weeksInMonth[newIndex].start);
+      const nextWeek = weeksInMonth[currentWeekIndex + 1];
+      setCurrentWeekIndex((i) => i + 1);
+      setCurrentWeekStart(nextWeek.start);
     }
   };
 

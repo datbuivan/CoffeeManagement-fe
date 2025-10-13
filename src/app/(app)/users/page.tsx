@@ -5,39 +5,62 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { User } from "@/model/user.model";
 import UserList from "./user-list";
+import { userService } from "@/services/user.service";
+import { toast } from "sonner";
+import { roleService } from "@/services/role.service";
 
-// Mock data
-const initialUsers: User[] = [
-  { id: "user-01", userName: "admin", fullName: "Quản Trị Viên", employeeCode: "EMP001", email: "admin@coffee.com", phoneNumber: "0123456789", roles: ["Admin"] },
-  { id: "user-02", userName: "staff1", fullName: "Nhân Viên 1", employeeCode: "EMP002", email: "staff1@coffee.com", phoneNumber: "0987654321", roles: ["Staff"] },
-  { id: "user-03", userName: "manager", fullName: "Quản Lý", employeeCode: "EMP003", phoneNumber: "0111222333", roles: ["Manager"] },
-  { id: "user-04", userName: "staff2", fullName: "Nhân Viên 2", employeeCode: "EMP004", roles: ["Staff"] },
-];
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-
-  // Load users từ mock
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
   useEffect(() => {
-    loadUsers();
+    loadData ();
   }, []);
 
-  const loadUsers = async () => {
-    // TODO: Uncomment khi có API
-    // const response = await UserService.getAll();
-    // setUsers(response.data);
+  const loadData  = async () => {
+    try{
+    setLoading(true);
+      const userRes = await userService.getAll();
+
+      if (userRes.statusCode === 200 && userRes.data) {
+        const userIds = userRes.data.map((user: User) => user.id);
+
+        const rolesRes = await roleService.getRolesByUserIds(userIds);
+
+         const rolesMap = rolesRes.statusCode === 200 && rolesRes.data 
+          ? rolesRes.data 
+          : {};
+
+        const updatedUsers = userRes.data.map((user: User) => {
+          const userRoles = rolesMap[user.id] || [];
+          const roleName = userRoles.length > 0 ? userRoles.join(", ") : "";
+          
+          return { ...user, roleName };
+        });
+
+        setUsers(updatedUsers);
+      } else {
+        toast.error("Không thể tải danh sách người dùng!");
+      }
+    }catch (error) {
+      console.error(error);
+      toast.error("Lỗi khi tải dữ liệu!");
+    } finally {
+      toast.dismiss(); // ẩn toast loading
+      setLoading(false);
+    }
     
-    // Mock data
-    setUsers(initialUsers);
   };
 
-  // Xóa user
   const handleDelete = async (id: string) => {
-    // TODO: Uncomment khi có API
-    // await UserService.delete(id);
-    
-    // Mock: xóa local
-    setUsers(users.filter((user) => user.id !== id));
+    try {
+      await userService.deleteById(id);
+      setUsers(users.filter((user) => user.id !== id));
+      toast.success("Xóa người dùng thành công!");
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast.error("Lỗi khi xóa người dùng!");
+    }
   };
 
   // Animation variants for page
@@ -59,7 +82,7 @@ export default function UsersPage() {
       <div className="max-w-7xl mx-auto">
         <UserList
           users={users}
-          onUpdate={loadUsers}
+          onUpdate={loadData}
           onDelete={handleDelete}
         />
       </div>

@@ -13,11 +13,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Layers } from "lucide-react";
 import ProductForm from "./product-form";
 import { Product } from "@/model/product.model";
 import { Category } from "@/model/category.model";
-import { productService } from "@/services/product.service";
+import ProductSizeSheet from "./product-size-sheet";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProductListProps {
   products: Product[];
@@ -27,24 +28,26 @@ interface ProductListProps {
   
 }
 
-export default function ProductList({ products, categories, onUpdate }: ProductListProps) {
+export default function ProductList({ products, categories, onUpdate , onDelete }: ProductListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [isSizeSheetOpen, setIsSizeSheetOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
 
   const perPage = 5;
 
   // Lọc sản phẩm theo search
-  const filteredProducts = useMemo(
-    () =>
-      products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.category?.[0]?.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [products, searchQuery]
-  );
+  const filteredProducts = useMemo(() => 
+  products.filter(p =>
+    (p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     p.category?.name.toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (selectedCategory === "all" || p.category?.id === selectedCategory)
+  ),
+  [products, searchQuery, selectedCategory]
+);
 
   // Paginate dữ liệu
   const paginatedProducts = useMemo(
@@ -60,28 +63,33 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
 
   // Thêm mới
   const handleAdd = () => {
-    setEditingProduct(null);
+    setCurrentProduct(null);
     setIsSheetOpen(true);
+  };
+
+  const handleManageSize = (product: Product) => {
+    setCurrentProduct(product);
+    setIsSizeSheetOpen(true);
   };
 
   // Sửa
   const handleEdit = (product: Product) => {
-    setEditingProduct(product);
+    setCurrentProduct(product);
     setIsSheetOpen(true);
   };
 
   // Xóa
   const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
-      await productService.deleteById(id);
-      onUpdate();
+   if (confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+      onDelete(id);
     }
   };
 
   // Lưu xong refresh
   const handleSaveSuccess = () => {
     setIsSheetOpen(false);
-    setEditingProduct(null);
+    setIsSizeSheetOpen(false);
+    setCurrentProduct(null);
     setCurrentPage(1);
     onUpdate();
   };
@@ -131,21 +139,49 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
       className="space-y-4"
     >
       {/* Thanh tìm kiếm + thêm */}
-      <motion.div variants={itemVariants} className="flex justify-between items-center">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B4E31]/50 h-4 w-4" />
-          <Input
-            type="text"
-            placeholder="Tìm sản phẩm theo tên hoặc danh mục..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="pl-10 border-[#D2B48C] focus:border-[#6B4E31] bg-[#FAF9F6] text-[#6B4E31]"
-          />
+      {/* Thanh tìm kiếm + select + thêm sản phẩm */}
+      <motion.div variants={itemVariants} className="flex flex-wrap items-center gap-2 justify-between">
+        <div className="flex flex-1 gap-2 items-center">
+          {/* Input tìm kiếm */}
+          <div className="relative w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B4E31]/50 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="Tìm sản phẩm theo tên..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="pl-10 border-[#D2B48C] focus:border-[#6B4E31] bg-[#FAF9F6] text-[#6B4E31]"
+            />
+          </div>
+
+          {/* Select danh mục */}
+          <div className="w-48">
+            <Select
+              value={selectedCategory}
+              onValueChange={(value) => {
+                setSelectedCategory(value);
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="border-[#D2B48C] bg-[#FAF9F6] text-[#6B4E31] w-full">
+                <SelectValue placeholder="Chọn danh mục" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
+        {/* Nút thêm sản phẩm */}
         <Button
           onClick={handleAdd}
           className="bg-[#D2B48C] hover:bg-[#EED6B3] text-[#6B4E31] font-medium shadow-lg"
@@ -155,9 +191,11 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
         </Button>
       </motion.div>
 
+
       {/* Bảng hiển thị sản phẩm */}
       <motion.div variants={itemVariants}>
         <div className="bg-[#FAF9F6] rounded-xl shadow-sm overflow-hidden border border-[#D2B48C]/20">
+        <div className="h-[450px] overflow-y-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-[#F5F5DC] to-[#D2B48C] border-b border-[#D2B48C]/30">
               <tr>
@@ -205,10 +243,10 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
                       {p.name}
                     </td>
                     <td className="px-6 py-4 text-sm text-[#6B4E31]/80">
-                      {p.category?.[0]?.name || "—"}
+                      {p.category?.name || "—"}
                     </td>
                     <td className="px-6 py-4 text-sm text-[#6B4E31]/80">
-                      {p.productSize?.map((s) => s.name).join(", ") || "—"}
+                      {p.productSize?.map((s) => s.size).join(", ") || "—"}
                     </td>
                     <td className="px-6 py-4 text-sm">
                       {p.isAvailable ? (
@@ -239,6 +277,12 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
+                        <Button 
+                          variant="ghost" size="sm" 
+                          onClick={() => handleManageSize(p)} 
+                          className="text-[#6B4E31] hover:bg-[#EED6B3]/50">
+                          <Layers className="h-4 w-4" />
+                        </Button>
                       </div>
                     </td>
                   </motion.tr>
@@ -246,6 +290,7 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
               )}
             </tbody>
           </table>
+          </div>
         </div>
       </motion.div>
 
@@ -304,10 +349,18 @@ export default function ProductList({ products, categories, onUpdate }: ProductL
       <ProductForm
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
-        product={editingProduct}
+        product={currentProduct}
         categories={categories}
         onSuccess={handleSaveSuccess}
       />
+
+      {currentProduct && (
+        <ProductSizeSheet 
+        isOpen={isSizeSheetOpen} 
+        onClose={() => setIsSizeSheetOpen(false)} 
+        productId={currentProduct.id} 
+        onSuccess={handleSaveSuccess} />
+      )}
     </motion.div>
   );
 }

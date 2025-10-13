@@ -5,16 +5,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Role } from "@/model/role.model";
 import RoleList from "./role-list";
+import { roleService } from "@/services/role.service";
 
-// Mock data
-const initialRoles: Role[] = [
-  { id: "role-01", name: "Admin", description: "Quản trị viên hệ thống" },
-  { id: "role-02", name: "Manager", description: "Quản lý cửa hàng" },
-  { id: "role-03", name: "Staff", description: "Nhân viên bán hàng" },
-];
 
 export default function RolesPage() {
-  const [roles, setRoles] = useState<Role[]>(initialRoles);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   // Load roles từ mock
   useEffect(() => {
@@ -22,21 +17,31 @@ export default function RolesPage() {
   }, []);
 
   const loadRoles = async () => {
-    // TODO: Uncomment khi có API
-    // const response = await RoleService.getAll();
-    // setRoles(response.data);
     
-    // Mock data
-    setRoles(initialRoles);
+    const response = await roleService.getAll();
+    if(response.statusCode === 200 && response.data){
+      setRoles(response.data);
+    }
+    else{
+      console.error("Lỗi khi tải quyền:", response.message);
+    }
+    
   };
 
-  // Xóa role
   const handleDelete = async (id: string) => {
-    // TODO: Uncomment khi có API
-    // await RoleService.delete(id);
-    
-    // Mock: xóa local
-    setRoles(roles.filter((role) => role.id !== id));
+    try{
+      const res = await roleService.deleteById(id);
+        if(res.statusCode === 200){
+          setRoles((role) => role.filter(r => r.id !== id))
+        }
+        else{
+        alert(res.message ?? "Không thể xóa quyền");
+        }
+    }
+    catch(error){
+      console.error("Error deleting role:", error);
+      alert("Có lỗi xảy ra khi xóa quyền!");
+    }
   };
 
   // Animation variants for page

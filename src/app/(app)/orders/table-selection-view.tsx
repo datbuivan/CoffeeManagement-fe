@@ -11,7 +11,7 @@ export default function TableSelectionView({ tables, onSelectTable }: {
   onSelectTable: (table: Table | null) => void;
 }) {
   return (
-    <div className="p-4 h-full overflow-y-auto">
+    <div className="p-4 h-full overflow-y-auto scroll-thin">
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         <Button
             variant="outline"

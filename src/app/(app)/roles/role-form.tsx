@@ -16,6 +16,8 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { Role } from "@/model/role.model";
+import { roleService } from "@/services/role.service";
+import { toast } from "sonner";
 
 interface RoleFormProps {
   isOpen: boolean;
@@ -30,17 +32,16 @@ export default function RoleForm({
   role,
   onSuccess,
 }: RoleFormProps) {
-  const [formData, setFormData] = useState({ name: "", description: "" });
+  const [formData, setFormData] = useState({ roleName: "", description: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset form khi mở/đóng hoặc role thay đổi
   useEffect(() => {
     if (isOpen) {
       if (role) {
-        setFormData({ name: role.name, description: role.description || "" });
+        setFormData({ roleName: role.name, description: role.description || "" });
       } else {
-        setFormData({ name: "", description: "" });
+        setFormData({ roleName: "", description: "" });
       }
       setErrors({});
     }
@@ -50,7 +51,7 @@ export default function RoleForm({
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
+    if (!formData.roleName.trim()) {
       newErrors.name = "Tên vai trò không được để trống";
     }
 
@@ -69,25 +70,19 @@ export default function RoleForm({
     setIsLoading(true);
 
     try {
-      // TODO: Gọi API ở đây
-      // if (role) {
-      //   await RoleService.update(role.id, formData);
-      // } else {
-      //   await RoleService.create(formData);
-      // }
+      if (role) {
+        await roleService.update(role.id, formData);
+        toast.success("Cập nhật role thành công!");
+      } else {
+        await roleService.create(formData);
+        toast.success("Thêm role thành công!");
+      }
 
-      // Giả lập API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      console.log("Save role:", {
-        id: role?.id,
-        ...formData,
-      });
 
       onSuccess();
     } catch (error) {
       console.error("Error saving role:", error);
-      alert("Có lỗi xảy ra khi lưu vai trò!");
+      toast.error("Có lỗi xảy ra khi lưu vai trò!");
     } finally {
       setIsLoading(false);
     }
@@ -131,8 +126,8 @@ export default function RoleForm({
               <Input
                 id="name"
                 placeholder="Ví dụ: Admin, Staff..."
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                value={formData.roleName}
+                onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
                 className={`border-[#D2B48C] focus:border-[#6B4E31] ${errors.name ? "border-red-500" : ""}`}
               />
               {errors.name && <p className="text-sm text-red-500">{errors.name}</p>}
