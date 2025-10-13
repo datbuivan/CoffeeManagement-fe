@@ -70,7 +70,7 @@ export default function UserForm({
           employeeCode: user.employeeCode || "",
           password: "",
           roleName: user.roleName || "",
-          isActive: user.isActive
+          isActive: user.isActive ?? true
         });
         setImagePreview(user.avatarUrl || null);
         setImageFile(null);
