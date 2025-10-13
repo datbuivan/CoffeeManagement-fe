@@ -122,7 +122,6 @@ export const useHasAllRoles = (roles: string[]): boolean => {
 
   const userRole = user.roleName; // chỉ có 1 role
 
-  // Chỉ true khi role duy nhất của user nằm trong roles
   return roles.length === 1 && roles[0] === userRole;
 };
 
