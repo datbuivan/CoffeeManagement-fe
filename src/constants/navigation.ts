@@ -9,6 +9,8 @@ import {
   Clock,
   Shield,
   Folder,
+  Coffee,
+  Archive,
 } from "lucide-react";
 
 export const NAV_ITEMS: NavItem[] = [
@@ -53,6 +55,18 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/roles",
     icon: Shield,
     roles: [ROLES.ADMIN],
+  },
+  {
+    label: "Ingredients",
+    href: "/ingredients",
+    icon: Coffee,
+    roles: [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF],
+  },
+  {
+    label: "InventoryTransactions",
+    href: "/inventory-transactions",
+    icon: Archive,
+    roles: [ROLES.ADMIN, ROLES.MANAGER],
   },
   {
     label: "Reports",
