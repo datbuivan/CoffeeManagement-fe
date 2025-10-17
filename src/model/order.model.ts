@@ -10,5 +10,5 @@ export interface Order {
   discountAmount: number;
   finalAmount: number;
   table?: Table;
-  orderItems: OrderItem;
+  orderItems: OrderItem[];
 }

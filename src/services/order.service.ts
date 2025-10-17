@@ -8,6 +8,11 @@ class OrderService extends BaseService {
   constructor() {
     super(process.env.NEXT_PUBLIC_API_URL);
   }
+
+  async getById(id: string): Promise<ApiResponse<Order>> {
+    return this.get<Order>(`/Order/${id}`);
+  }
+
   /** Tạo đơn hàng và thanh toán */
   async createAndPayOrder(
     dto: CreateOrder
