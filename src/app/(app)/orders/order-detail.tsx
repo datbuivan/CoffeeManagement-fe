@@ -35,7 +35,7 @@ export default function OrderDetail({
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="flex flex-col p-0 min-h-[500px]">
+      <CardContent className="flex flex-col p-0 min-h-[450px]">
         {/* Scrollable Items List */}
         <div className="flex-grow overflow-y-auto px-6 py-4">
           <div className="space-y-3">
