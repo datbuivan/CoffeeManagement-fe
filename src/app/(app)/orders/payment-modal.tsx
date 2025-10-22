@@ -61,9 +61,9 @@ export default function PaymentModal({
   }, [paymentMethod]);
 
   const handlePayment = async (method: "Cash" | "VnPay") => {
-    const userInfoString = localStorage.getItem("user-info");
+    const userInfoString = localStorage.getItem("user");
     const userInfo = userInfoString ? JSON.parse(userInfoString) : null;
-    const userId = userInfo?.id || "d5db0dd7-7534-4c08-9d61-80be8f67454b";
+    const userId = userInfo?.id || "";
 
     if (method === "Cash") {
       if (customerPaid < total) {
@@ -87,6 +87,7 @@ export default function PaymentModal({
 
     try {
       setIsProcessing(true);
+      console.log("Payload", payload);
       const res = await orderService.createAndPayOrder(payload);
       if (res.statusCode !== 200) {
         toast.error(res.message || "Tạo đơn hàng thất bại!");
